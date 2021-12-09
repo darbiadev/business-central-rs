@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "business_central",
+    "business_central_cli"
+]

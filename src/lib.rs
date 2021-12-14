@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::fmt;
 
 use reqwest::header::{HeaderMap, IF_MATCH};
-use reqwest::{Method, StatusCode};
+use reqwest::Method;
+use serde::de::DeserializeOwned;
+
+pub mod resources;
 
 pub struct Client {
     username: String,
@@ -29,67 +32,35 @@ impl Client {
         }
     }
 
-    async fn make_request(
-        &self,
-        method: Method,
-        url: String,
-        headers: HeaderMap,
-        _parameters: Option<HashMap<String, String>>,
-        _data: Option<HashMap<String, String>>,
-    ) -> Result<String, StatusCode> {
-        let request = reqwest::Client::new()
-            .request(method, url)
-            .basic_auth(&self.username, Some(&self.web_service_access_key))
-            .headers(headers);
-
-        let response = request.send().await;
-
-        match &response {
-            Ok(r) => {
-                if r.status() != StatusCode::OK {
-                    return Err(r.status());
-                }
-            }
-            Err(e) => {
-                return if e.is_status() {
-                    Err(e.status().unwrap())
-                } else {
-                    Err(StatusCode::BAD_REQUEST)
-                };
-            }
-        }
-
-        Ok(response.unwrap().text().await.unwrap())
-    }
-
     // params: dict[str, str] = None,
-    pub async fn make_odata_request(
+    pub async fn make_odata_request<T>(
         &self,
         method: Method,
         resource_name: String,
-        resource_values: Option<Vec<UrlKeyValue>>,
+        resource_values: Vec<UrlKeyValue>,
         _resource_data: HashMap<String, String>,
         etag: Option<String>,
-    ) -> Result<String, StatusCode> {
+    ) -> reqwest::Result<T>
+        where
+            T: DeserializeOwned,
+    {
         let mut headers = HeaderMap::new();
         if etag.is_some() {
             headers.insert(IF_MATCH, etag.unwrap().parse().unwrap());
         }
 
-        let response = &self
-            .make_request(
-                method,
-                format!(
-                    "{}{}",
-                    &self.odata_url,
-                    build_resource_url(resource_name, resource_values)
-                ),
-                headers,
-                None,
-                None,
-            )
-            .await;
-        response.clone()
+        let url = format!(
+            "{}{}",
+            &self.odata_url,
+            build_resource_url(resource_name, resource_values)
+        );
+
+        let request = reqwest::Client::new()
+            .request(method, url)
+            .basic_auth(&self.username, Some(&self.web_service_access_key))
+            .headers(headers);
+
+        request.send().await?.json::<T>().await
     }
 
     pub async fn make_unbound_request(
@@ -98,17 +69,16 @@ impl Client {
         codeunit: String,
         procedure: String,
         _data: HashMap<String, String>,
-    ) -> Result<String, StatusCode> {
-        let response = &self
-            .make_request(
-                method,
-                format!("{}/{}_{}/", &self.odata_base_url, codeunit, procedure),
-                HeaderMap::new(),
-                None,
-                None,
-            )
-            .await;
-        response.clone()
+    ) -> reqwest::Result<reqwest::Response> {
+        let headers = HeaderMap::new();
+        let url = format!("{}/{}_{}/", &self.odata_base_url, codeunit, procedure);
+
+        reqwest::Client::new()
+            .request(method, url)
+            .basic_auth(&self.username, Some(&self.web_service_access_key))
+            .headers(headers)
+            .send()
+            .await
     }
 }
 
@@ -126,26 +96,21 @@ impl fmt::Display for UrlKeyValue {
     }
 }
 
-pub fn build_resource_url(
-    resource_name: String,
-    resource_values: Option<Vec<UrlKeyValue>>,
-) -> String {
+fn build_resource_url(resource_name: String, resource_values: Vec<UrlKeyValue>) -> String {
     let mut resource_url = resource_name;
-    if let Some(values) = resource_values {
-        if !values.is_empty() {
-            if values.len() == 1 {
-                resource_url.push_str(format!("({})", values[0]).as_str());
-            } else {
-                resource_url.push('(');
-                let mut value_iter = values.iter();
-                let last_value = value_iter.next_back().unwrap().to_string();
-                for value in value_iter {
-                    resource_url.push_str(value.to_string().as_str());
-                    resource_url.push(',');
-                }
-                resource_url.push_str(last_value.as_str());
-                resource_url.push(')');
+    if !resource_values.is_empty() {
+        if resource_values.len() == 1 {
+            resource_url.push_str(format!("({})", resource_values[0]).as_str());
+        } else {
+            resource_url.push('(');
+            let mut value_iter = resource_values.iter();
+            let last_value = value_iter.next_back().unwrap().to_string();
+            for value in value_iter {
+                resource_url.push_str(value.to_string().as_str());
+                resource_url.push(',');
             }
+            resource_url.push_str(last_value.as_str());
+            resource_url.push(')');
         }
     }
     resource_url

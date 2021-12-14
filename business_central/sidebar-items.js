@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["UrlKeyValue",""]],"fn":[["build_resource_url",""]],"struct":[["Client",""]]});
+initSidebarItems({"enum":[["UrlKeyValue",""]],"mod":[["resources",""]],"struct":[["Client",""]]});

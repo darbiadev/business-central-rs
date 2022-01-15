@@ -40,8 +40,8 @@ impl Client {
         _resource_data: HashMap<String, String>,
         etag: Option<String>,
     ) -> reqwest::Result<T>
-        where
-            T: DeserializeOwned,
+    where
+        T: DeserializeOwned,
     {
         let mut headers = HeaderMap::new();
         if etag.is_some() {

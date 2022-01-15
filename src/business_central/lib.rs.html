@@ -115,9 +115,7 @@
 <span id="114">114</span>
 <span id="115">115</span>
 <span id="116">116</span>
-<span id="117">117</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
-<span class="kw">use</span> <span class="ident">std::fmt</span>;
 
 <span class="kw">use</span> <span class="ident">reqwest::header</span>::{<span class="ident">HeaderMap</span>, <span class="ident">IF_MATCH</span>};
 <span class="kw">use</span> <span class="ident">reqwest::Method</span>;
@@ -205,8 +203,8 @@
     <span class="ident">Number</span>(<span class="ident">i16</span>),
 }
 
-<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">UrlKeyValue</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
+<span class="kw">impl</span> <span class="ident">std::fmt::Display</span> <span class="kw">for</span> <span class="ident">UrlKeyValue</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">std::fmt::Formatter</span>) -&gt; <span class="ident">std::fmt::Result</span> {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="ident">UrlKeyValue::Text</span>(<span class="ident">text</span>) =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;&#39;{}&#39;&quot;</span>, <span class="ident">text</span>),
             <span class="ident">UrlKeyValue::Number</span>(<span class="ident">number</span>) =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{}&quot;</span>, <span class="ident">number</span>),

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 use reqwest::header::{HeaderMap, IF_MATCH};
 use reqwest::Method;
@@ -87,8 +86,8 @@ pub enum UrlKeyValue {
     Number(i16),
 }
 
-impl fmt::Display for UrlKeyValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for UrlKeyValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             UrlKeyValue::Text(text) => write!(f, "'{}'", text),
             UrlKeyValue::Number(number) => write!(f, "{}", number),

@@ -157,8 +157,8 @@
         <span class="ident">_resource_data</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">String</span><span class="op">&gt;</span>,
         <span class="ident">etag</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     ) -&gt; <span class="ident">reqwest::Result</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>
-        <span class="kw">where</span>
-            <span class="ident">T</span>: <span class="ident">DeserializeOwned</span>,
+    <span class="kw">where</span>
+        <span class="ident">T</span>: <span class="ident">DeserializeOwned</span>,
     {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">headers</span> <span class="op">=</span> <span class="ident">HeaderMap::new</span>();
         <span class="kw">if</span> <span class="ident">etag</span>.<span class="ident">is_some</span>() {

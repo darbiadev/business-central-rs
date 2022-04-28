@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 
 use reqwest::header::{HeaderMap, IF_MATCH};
-use reqwest::Method;
+use reqwest::{Client, Method};
 use serde::de::DeserializeOwned;
 
 pub mod resources;
 
-pub struct Client {
+pub struct BusinessCentralServices {
     username: String,
     web_service_access_key: String,
     odata_base_url: String,
     odata_url: String,
+    client: Client,
 }
 
-impl Client {
+impl BusinessCentralServices {
     pub fn new(
         base_url: String,
         tenant_id: String,
@@ -21,13 +22,14 @@ impl Client {
         company_name: String,
         username: String,
         web_service_access_key: String,
-    ) -> Client {
+    ) -> BusinessCentralServices {
         let base_url_ = format!("{}/{}/{}/ODataV4/", base_url, tenant_id, environment);
-        Client {
+        BusinessCentralServices {
             odata_base_url: base_url_.clone(),
             odata_url: format!("{}Company('{}')/", base_url_, company_name),
             username,
             web_service_access_key,
+            client: Client::new(),
         }
     }
 
@@ -54,7 +56,8 @@ impl Client {
             build_resource_url(resource_name, resource_values)
         );
 
-        let request = reqwest::Client::new()
+        let request = self
+            .client
             .request(method, url)
             .basic_auth(&self.username, Some(&self.web_service_access_key))
             .headers(headers);

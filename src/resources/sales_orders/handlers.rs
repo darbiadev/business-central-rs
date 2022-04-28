@@ -1,7 +1,10 @@
 use crate::resources::sales_orders::models::SalesOrder;
-use crate::{Client, UrlKeyValue};
+use crate::{BusinessCentralServices, UrlKeyValue};
 
-pub async fn get_order(client: Client, order_number: &str) -> Result<SalesOrder, reqwest::Error> {
+pub async fn get_order(
+    client: BusinessCentralServices,
+    order_number: &str,
+) -> Result<SalesOrder, reqwest::Error> {
     let sales_order = client
         .make_odata_request::<SalesOrder>(
             reqwest::Method::GET,

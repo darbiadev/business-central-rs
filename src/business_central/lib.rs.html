@@ -122,19 +122,20 @@
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 
 <span class="kw">use</span> <span class="ident">reqwest::header</span>::{<span class="ident">HeaderMap</span>, <span class="ident">IF_MATCH</span>};
-<span class="kw">use</span> <span class="ident">reqwest::Method</span>;
-<span class="kw">use</span> <span class="ident">serde::de::DeserializeOwned</span>;
+<span class="kw">use</span> <span class="ident">reqwest</span>::{<span class="ident">Client</span>, <span class="ident">Method</span>};
+<span class="kw">use</span> <span class="ident">serde_json::Value</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">resources</span>;
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Client</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BusinessCentralServices</span> {
     <span class="ident">username</span>: <span class="ident">String</span>,
     <span class="ident">web_service_access_key</span>: <span class="ident">String</span>,
     <span class="ident">odata_base_url</span>: <span class="ident">String</span>,
     <span class="ident">odata_url</span>: <span class="ident">String</span>,
+    <span class="ident">client</span>: <span class="ident">Client</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">Client</span> {
+<span class="kw">impl</span> <span class="ident">BusinessCentralServices</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
         <span class="ident">base_url</span>: <span class="ident">String</span>,
         <span class="ident">tenant_id</span>: <span class="ident">String</span>,
@@ -142,28 +143,26 @@
         <span class="ident">company_name</span>: <span class="ident">String</span>,
         <span class="ident">username</span>: <span class="ident">String</span>,
         <span class="ident">web_service_access_key</span>: <span class="ident">String</span>,
-    ) -&gt; <span class="ident">Client</span> {
+    ) -&gt; <span class="ident">BusinessCentralServices</span> {
         <span class="kw">let</span> <span class="ident">base_url_</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;{}/{}/{}/ODataV4/&quot;</span>, <span class="ident">base_url</span>, <span class="ident">tenant_id</span>, <span class="ident">environment</span>);
-        <span class="ident">Client</span> {
+        <span class="ident">BusinessCentralServices</span> {
             <span class="ident">odata_base_url</span>: <span class="ident">base_url_</span>.<span class="ident">clone</span>(),
             <span class="ident">odata_url</span>: <span class="macro">format!</span>(<span class="string">&quot;{}Company(&#39;{}&#39;)/&quot;</span>, <span class="ident">base_url_</span>, <span class="ident">company_name</span>),
             <span class="ident">username</span>,
             <span class="ident">web_service_access_key</span>,
+            <span class="ident">client</span>: <span class="ident">Client::new</span>(),
         }
     }
 
     <span class="comment">// params: dict[str, str] = None,</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">make_odata_request</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">make_odata_request</span>(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         <span class="ident">method</span>: <span class="ident">Method</span>,
         <span class="ident">resource_name</span>: <span class="ident">String</span>,
         <span class="ident">resource_values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">UrlKeyValue</span><span class="op">&gt;</span>,
         <span class="ident">_resource_data</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">String</span><span class="op">&gt;</span>,
         <span class="ident">etag</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="ident">reqwest::Result</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">T</span>: <span class="ident">DeserializeOwned</span>,
-    {
+    ) -&gt; <span class="ident">reqwest::Result</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">headers</span> <span class="op">=</span> <span class="ident">HeaderMap::new</span>();
         <span class="kw">if</span> <span class="ident">etag</span>.<span class="ident">is_some</span>() {
             <span class="ident">headers</span>.<span class="ident">insert</span>(<span class="ident">IF_MATCH</span>, <span class="ident">etag</span>.<span class="ident">unwrap</span>().<span class="ident">parse</span>().<span class="ident">unwrap</span>());
@@ -175,12 +174,13 @@
             <span class="ident">build_resource_url</span>(<span class="ident">resource_name</span>, <span class="ident">resource_values</span>)
         );
 
-        <span class="kw">let</span> <span class="ident">request</span> <span class="op">=</span> <span class="ident">reqwest::Client::new</span>()
+        <span class="kw">let</span> <span class="ident">request</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">client</span>
             .<span class="ident">request</span>(<span class="ident">method</span>, <span class="ident">url</span>)
             .<span class="ident">basic_auth</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">username</span>, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">web_service_access_key</span>))
             .<span class="ident">headers</span>(<span class="ident">headers</span>);
 
-        <span class="ident">request</span>.<span class="ident">send</span>().<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">json</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>().<span class="kw">await</span>
+        <span class="ident">request</span>.<span class="ident">send</span>().<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">json</span>().<span class="kw">await</span>
     }
 
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">make_unbound_request</span>(
@@ -193,7 +193,7 @@
         <span class="kw">let</span> <span class="ident">headers</span> <span class="op">=</span> <span class="ident">HeaderMap::new</span>();
         <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;{}/{}_{}/&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">odata_base_url</span>, <span class="ident">codeunit</span>, <span class="ident">procedure</span>);
 
-        <span class="ident">reqwest::Client::new</span>()
+        <span class="ident">Client::new</span>()
             .<span class="ident">request</span>(<span class="ident">method</span>, <span class="ident">url</span>)
             .<span class="ident">basic_auth</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">username</span>, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">web_service_access_key</span>))
             .<span class="ident">headers</span>(<span class="ident">headers</span>)

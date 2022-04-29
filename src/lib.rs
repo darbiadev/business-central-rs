@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 
 use reqwest::header::{HeaderMap, IF_MATCH};
-use reqwest::Method;
-use serde::de::DeserializeOwned;
+use reqwest::{Client, Method};
+use serde_json::Value;
 
 pub mod resources;
 
-pub struct Client {
+pub struct BusinessCentralServices {
     username: String,
     web_service_access_key: String,
     odata_base_url: String,
     odata_url: String,
+    client: Client,
 }
 
-impl Client {
+impl BusinessCentralServices {
     pub fn new(
         base_url: String,
         tenant_id: String,
@@ -21,28 +22,26 @@ impl Client {
         company_name: String,
         username: String,
         web_service_access_key: String,
-    ) -> Client {
+    ) -> BusinessCentralServices {
         let base_url_ = format!("{}/{}/{}/ODataV4/", base_url, tenant_id, environment);
-        Client {
+        BusinessCentralServices {
             odata_base_url: base_url_.clone(),
             odata_url: format!("{}Company('{}')/", base_url_, company_name),
             username,
             web_service_access_key,
+            client: Client::new(),
         }
     }
 
     // params: dict[str, str] = None,
-    pub async fn make_odata_request<T>(
+    pub async fn make_odata_request(
         &self,
         method: Method,
         resource_name: String,
         resource_values: Vec<UrlKeyValue>,
         _resource_data: HashMap<String, String>,
         etag: Option<String>,
-    ) -> reqwest::Result<T>
-    where
-        T: DeserializeOwned,
-    {
+    ) -> reqwest::Result<Value> {
         let mut headers = HeaderMap::new();
         if etag.is_some() {
             headers.insert(IF_MATCH, etag.unwrap().parse().unwrap());
@@ -54,12 +53,13 @@ impl Client {
             build_resource_url(resource_name, resource_values)
         );
 
-        let request = reqwest::Client::new()
+        let request = self
+            .client
             .request(method, url)
             .basic_auth(&self.username, Some(&self.web_service_access_key))
             .headers(headers);
 
-        request.send().await?.json::<T>().await
+        request.send().await?.json().await
     }
 
     pub async fn make_unbound_request(
@@ -72,7 +72,7 @@ impl Client {
         let headers = HeaderMap::new();
         let url = format!("{}/{}_{}/", &self.odata_base_url, codeunit, procedure);
 
-        reqwest::Client::new()
+        Client::new()
             .request(method, url)
             .basic_auth(&self.username, Some(&self.web_service_access_key))
             .headers(headers)

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::header::{HeaderMap, IF_MATCH};
 use reqwest::{Client, Method};
-use serde::de::DeserializeOwned;
+use serde_json::Value;
 
 pub mod resources;
 
@@ -34,17 +34,14 @@ impl BusinessCentralServices {
     }
 
     // params: dict[str, str] = None,
-    pub async fn make_odata_request<T>(
+    pub async fn make_odata_request(
         &self,
         method: Method,
         resource_name: String,
         resource_values: Vec<UrlKeyValue>,
         _resource_data: HashMap<String, String>,
         etag: Option<String>,
-    ) -> reqwest::Result<T>
-    where
-        T: DeserializeOwned,
-    {
+    ) -> reqwest::Result<Value> {
         let mut headers = HeaderMap::new();
         if etag.is_some() {
             headers.insert(IF_MATCH, etag.unwrap().parse().unwrap());
@@ -62,7 +59,7 @@ impl BusinessCentralServices {
             .basic_auth(&self.username, Some(&self.web_service_access_key))
             .headers(headers);
 
-        request.send().await?.json::<T>().await
+        request.send().await?.json().await
     }
 
     pub async fn make_unbound_request(
@@ -75,7 +72,7 @@ impl BusinessCentralServices {
         let headers = HeaderMap::new();
         let url = format!("{}/{}_{}/", &self.odata_base_url, codeunit, procedure);
 
-        reqwest::Client::new()
+        Client::new()
             .request(method, url)
             .basic_auth(&self.username, Some(&self.web_service_access_key))
             .headers(headers)

@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["handlers",""],["models",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["handlers",""],["models",""]]};

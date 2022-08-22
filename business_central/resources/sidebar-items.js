@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["sales_orders",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["sales_orders",""]]};

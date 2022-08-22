@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["get_generic",""],["get_order",""]]});
+window.SIDEBAR_ITEMS = {"fn":[["get_generic",""],["get_order",""]]};

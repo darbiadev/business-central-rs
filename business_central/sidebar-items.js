@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["UrlKeyValue",""]],"mod":[["resources",""]],"struct":[["BusinessCentralServices",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["UrlKeyValue",""]],"mod":[["resources",""]],"struct":[["BusinessCentralServices",""]]};
